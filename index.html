@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HighCourt Scoreboard Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="theme-color" content="#121212">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Teko:wght@300;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- DESIGN SYSTEM 2.0 --- */
+        :root {
+            --bg-grad: radial-gradient(circle at center, #1f1f2e 0%, #0a0a12 100%);
+            --glass-bg: rgba(30, 30, 35, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --neon-red: #ff2a2a;
+            --neon-amber: #ffc107;
+            --neon-green: #00ff88;
+            --font-ui: 'Chakra Petch', sans-serif; /* Tech look for labels */
+            --font-num: 'Teko', sans-serif; /* Tall condensed font for numbers */
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; } 
+
+        body {
+            margin: 0; padding: 15px;
+            background: var(--bg-grad);
+            color: #fff;
+            font-family: var(--font-ui);
+            min-height: 100vh;
+        }
+
+        /* LAYOUT */
+        .scoreboard-container {
+            display: grid; gap: 20px; max-width: 1200px; margin: 0 auto;
+            grid-template-columns: 1fr 1.3fr 1fr;
+            grid-template-rows: auto auto;
+            grid-template-areas:
+                "home clock guest"
+                "home details guest"
+                "help help help";
+        }
+
+        /* GLASS PANELS */
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        /* TYPOGRAPHY */
+        .label {
+            display: block; font-size: 0.8rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #8899a6; margin-bottom: 8px;
+        }
+
+        .huge-score {
+            font-family: var(--font-num);
+            font-size: 8rem; /* Bigger score */
+            line-height: 0.9;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .team-name {
+            font-size: 1.5rem; margin: 0;
+            border-bottom: 2px solid transparent;
+            cursor: text;
+        }
+        .team-name:focus { border-bottom-color: #555; outline: none; }
+
+        .main-time-display {
+            font-family: var(--font-num);
+            font-size: 6.5rem;
+            line-height: 0.9;
+            color: #fff;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            width: 100%;
+        }
+
+        /* BUTTONS (UX UPGRADE) */
+        button {
+            cursor: pointer;
+            border: none; border-radius: 8px;
+            font-family: var(--font-ui); font-weight: bold;
+            transition: transform 0.1s, background 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+
+        .scoring-controls {
+            display: grid;
+            grid-template-columns: 0.5fr 1fr 1fr 1fr; /* -1 is smaller */
+            gap: 8px; margin-bottom: 20px;
+        }
+
+        .btn-score {
+            background: #2d2d3d; color: #fff; border: 1px solid #444;
+            padding: 15px 0; font-size: 1.2rem;
+        }
+        .btn-score:hover { background: #3d3d4d; border-color: #666; }
+
+        .btn-minus {
+            background: rgba(255, 42, 42, 0.15); color: #ff6b6b;
+            font-size: 1rem;
+        }
+        
+        .clock-controls { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        .btn-main { padding: 15px 30px; font-size: 1.1rem; border-radius: 50px; width: 45%; }
+        .btn-start { background: var(--neon-green); color: #000; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); }
+        .btn-stop { background: var(--neon-red); color: #fff; box-shadow: 0 0 15px rgba(255, 42, 42, 0.3); }
+        .btn-reset { background: #444; color: #aaa; }
+
+        /* SHOT CLOCK */
+        .shot-clock-container {
+            background: #000; border-radius: 8px; padding: 10px;
+            margin-bottom: 20px; width: 80%; border: 1px solid #333;
+        }
+        .shot-clock-display {
+            font-family: var(--font-num); font-size: 4rem;
+            color: var(--neon-amber); line-height: 0.8;
+        }
+        .shot-btn-group { display: flex; gap: 5px; justify-content: center; margin-top: 5px; }
+        .btn-shot { padding: 5px 15px; background: #222; color: #888; font-size: 0.9rem; }
+
+        /* DETAILS GRID */
+        .team-details-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px;
+        }
+        .detail-num { font-family: var(--font-num); font-size: 3rem; line-height: 1; }
+        
+        /* COLORS & STATES */
+        .color-amber { color: var(--neon-amber); }
+        .color-red { color: var(--neon-red); }
+        .color-green { color: var(--neon-green); }
+        .color-blue { color: #2979ff; }
+        
+        .sb-area-home.active-possession { border-color: var(--neon-amber); box-shadow: 0 0 20px rgba(255, 193, 7, 0.2); }
+        .sb-area-guest.active-possession { border-color: var(--neon-amber); box-shadow: 0 0 20px rgba(255, 193, 7, 0.2); }
+
+        .bonus-indicator {
+            margin-top: 10px; font-weight: bold; font-size: 0.9rem; letter-spacing: 2px;
+            color: #333; background: #111; padding: 5px; border-radius: 4px;
+        }
+        .bonus-active { color: #fff; background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* MOBILE OPTIMIZATION */
+        @media (max-width: 900px) {
+            body { padding: 10px; }
+            .scoreboard-container {
+                grid-template-columns: 1fr;
+                grid-template-areas: "clock" "home" "guest" "details" "help";
+                gap: 15px;
+            }
+            .huge-score { font-size: 6rem; }
+            .main-time-display { font-size: 5rem; }
+            .btn-score { padding: 20px 0; } /* Larger touch targets */
+        }
+        
+        /* Layout Areas */
+        .sb-area-clock { grid-area: clock; display: flex; flex-direction: column; align-items: center; }
+        .sb-area-home { grid-area: home; }
+        .sb-area-guest { grid-area: guest; }
+        .sb-area-details { grid-area: details; }
+        .sb-area-help { grid-area: help; text-align: center; opacity: 0.5; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="scoreboard-container">
+    <div class="sb-area-clock panel">
+        <span class="label">GAME CLOCK</span>
+        <div id="clockDisplay" class="main-time-display">12:00</div>
+        
+        <div class="shot-clock-container">
+            <span class="label" style="font-size:0.7rem; color:#555;">SHOT CLOCK</span>
+            <div id="shotClockDisplay" class="shot-clock-display">24</div>
+            <div class="shot-btn-group">
+                <button class="btn-shot" onclick="resetShotClock(24)">24</button>
+                <button class="btn-shot" onclick="resetShotClock(14)">14</button>
+            </div>
+        </div>
+
+        <div class="clock-controls">
+            <button id="startBtn" class="btn-main btn-start" onclick="toggleClock()">START</button>
+            <button class="btn-main btn-reset" onclick="resetGameClock()">RESET</button>
+        </div>
+        <button style="margin-top:15px; background:none; color:#444; font-size:0.7rem;" onclick="newGame()">⚠ NEW GAME</button>
+    </div>
+
+    <div class="sb-area-home panel" id="homePanel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h1 id="homeName" class="team-name color-amber" contenteditable="true" onblur="updateName('home', this.innerText)">HOME</h1>
+            <button onclick="cycleColor('home')" style="background:none; font-size:1.2rem;">🎨</button>
+        </div>
+        <div id="homeScore" class="huge-score color-amber">0</div>
+        
+        <div class="scoring-controls">
+            <button class="btn-minus" onclick="updateScore('home', -1)">-1</button>
+            <button class="btn-score" onclick="updateScore('home', 1)">+1</button>
+            <button class="btn-score" onclick="updateScore('home', 2)">+2</button>
+            <button class="btn-score" onclick="updateScore('home', 3)">+3</button>
+        </div>
+
+        <div class="team-details-grid">
+            <div>
+                <span class="label">FOULS</span>
+                <span id="homeFouls" class="detail-num color-red">0</span>
+                <button style="width:100%; margin-top:5px; background:#333; color:#aaa; padding:5px;" onclick="updateFouls('home', 1)">+1</button>
+            </div>
+            <div>
+                <span class="label">TIMEOUTS</span>
+                <span id="homeTimeouts" class="detail-num color-green">7</span>
+                <button style="width:100%; margin-top:5px; background:#333; color:#aaa; padding:5px;" onclick="updateTimeouts('home')">-1</button>
+            </div>
+        </div>
+        <div id="homeBonus" class="bonus-indicator">BONUS</div>
+    </div>
+
+    <div class="sb-area-guest panel" id="guestPanel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h1 id="guestName" class="team-name color-amber" contenteditable="true" onblur="updateName('guest', this.innerText)">GUEST</h1>
+            <button onclick="cycleColor('guest')" style="background:none; font-size:1.2rem;">🎨</button>
+        </div>
+        <div id="guestScore" class="huge-score color-amber">0</div>
+
+        <div class="scoring-controls">
+            <button class="btn-minus" onclick="updateScore('guest', -1)">-1</button>
+            <button class="btn-score" onclick="updateScore('guest', 1)">+1</button>
+            <button class="btn-score" onclick="updateScore('guest', 2)">+2</button>
+            <button class="btn-score" onclick="updateScore('guest', 3)">+3</button>
+        </div>
+
+        <div class="team-details-grid">
+            <div>
+                <span class="label">FOULS</span>
+                <span id="guestFouls" class="detail-num color-red">0</span>
+                <button style="width:100%; margin-top:5px; background:#333; color:#aaa; padding:5px;" onclick="updateFouls('guest', 1)">+1</button>
+            </div>
+            <div>
+                <span class="label">TIMEOUTS</span>
+                <span id="guestTimeouts" class="detail-num color-green">7</span>
+                <button style="width:100%; margin-top:5px; background:#333; color:#aaa; padding:5px;" onclick="updateTimeouts('guest')">-1</button>
+            </div>
+        </div>
+        <div id="guestBonus" class="bonus-indicator">BONUS</div>
+    </div>
+
+    <div class="sb-area-details panel" style="display:flex; justify-content: space-around; align-items: center;">
+        <div>
+            <span class="label">PERIOD</span>
+            <span id="periodDisplay" class="detail-num color-green">1</span>
+            <button style="margin-top:5px; padding:5px 15px; background:#333; color:#fff;" onclick="nextPeriod()">NEXT</button>
+        </div>
+        <div onclick="togglePossession()" style="cursor: pointer; text-align: center;">
+            <span class="label">POSSESSION</span>
+            <div style="font-size: 2.5rem; margin-top: 5px;">
+                <span id="possArrowLeft" class="color-red" style="opacity:0.2;">&#9664;</span>
+                <span id="possArrowRight" class="color-red" style="opacity:0.2;">&#9654;</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sb-area-help">
+        Shortcuts: SPACE (Start/Stop) &bull; S (Shot 24) &bull; F (Shot 14) &bull; 1-3 (Home) &bull; 4-6 (Guest)
+    </div>
+</div>
+
+<script>
+    // --- SERVICE WORKER (OFFLINE DOCTOR) ---
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js")
+            .then(reg => console.log("Service Worker Registered"))
+            .catch(err => console.log("Service Worker Failed:", err));
+        });
+    }
+
+    // --- AUDIO ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    function playBuzzer() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 1.2);
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.5);
+    }
+
+    // --- STATE ---
+    const COLORS = ['color-amber', 'color-red', 'color-green', 'color-blue'];
+    const INITIAL_MINUTES = 12;
+    let state = { timeTenths: INITIAL_MINUTES * 60 * 10, shotClock: 24, scores: { home: 0, guest: 0 }, names: { home: "HOME", guest: "GUEST" }, colors: { home: 0, guest: 0 }, fouls: { home: 0, guest: 0 }, timeouts: { home: 7, guest: 7 }, period: 1, possession: 'home' };
+    let gameInterval = null; let isRunning = false;
+
+    function saveGame() { localStorage.setItem('highCourtPro', JSON.stringify(state)); }
+    function loadGame() { const saved = localStorage.getItem('highCourtPro'); if (saved) { state = JSON.parse(saved); refreshUI(); } }
+    function newGame() { if(confirm("Start New Game?")) { localStorage.removeItem('highCourtPro'); location.reload(); } }
+
+    function toggleClock() { if (isRunning) stopClock(); else startClock(); }
+    function startClock() { 
+        if (isRunning || state.timeTenths <= 0) return; 
+        if (audioCtx.state === 'suspended') audioCtx.resume(); 
+        isRunning = true; 
+        const btn = document.getElementById('startBtn');
+        btn.innerText = "STOP"; btn.classList.remove('btn-start'); btn.classList.add('btn-stop');
+        
+        gameInterval = setInterval(() => { 
+            if (state.timeTenths > 0) { 
+                state.timeTenths--; 
+                // Shot Clock Logic
+                if (state.timeTenths % 10 === 0) { 
+                    if (state.shotClock > 0) { state.shotClock--; updateShotClockUI(); } 
+                    else if (state.shotClock === 0) { playBuzzer(); stopClock(); } 
+                } 
+                updateClockUI(); 
+                if (state.timeTenths % 50 === 0) saveGame(); 
+            } else { playBuzzer(); stopClock(); } 
+        }, 100); 
+    }
+    
+    function stopClock() { 
+        isRunning = false; clearInterval(gameInterval); 
+        const btn = document.getElementById('startBtn');
+        btn.innerText = "START"; btn.classList.remove('btn-stop'); btn.classList.add('btn-start');
+        saveGame(); 
+    }
+    
+    function resetGameClock() { stopClock(); state.timeTenths = INITIAL_MINUTES * 60 * 10; state.shotClock = 24; updateClockUI(); updateShotClockUI(); saveGame(); }
+    function resetShotClock(seconds) { state.shotClock = seconds; updateShotClockUI(); saveGame(); }
+
+    function refreshUI() { 
+        updateClockUI(); updateShotClockUI(); 
+        ['home', 'guest'].forEach(team => { 
+            document.getElementById(`${team}Name`).innerText = state.names[team]; 
+            document.getElementById(`${team}Score`).innerText = state.scores[team]; 
+            document.getElementById(`${team}Fouls`).innerText = state.fouls[team]; 
+            document.getElementById(`${team}Timeouts`).innerText = state.timeouts[team]; 
+            
+            // Apply Colors
+            const colorClass = COLORS[state.colors[team]]; 
+            document.getElementById(`${team}Score`).className = `huge-score ${colorClass}`; 
+            document.getElementById(`${team}Name`).className = `team-name ${colorClass}`; 
+            checkBonus(team); 
+        }); 
+        document.getElementById('periodDisplay').innerText = state.period; 
+        updatePossessionUI(); 
+    }
+
+    function updateClockUI() { 
+        const display = document.getElementById('clockDisplay'); 
+        const totalSeconds = Math.floor(state.timeTenths / 10); 
+        const mins = Math.floor(totalSeconds / 60); 
+        const secs = totalSeconds % 60; 
+        const tenths = state.timeTenths % 10; 
+        if (totalSeconds < 60) { display.innerText = `${secs.toString().padStart(2,'0')}.${tenths}`; display.style.color = "#ff2a2a"; } 
+        else { display.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`; display.style.color = "#fff"; } 
+    }
+    
+    function updateShotClockUI() { 
+        const sc = document.getElementById('shotClockDisplay'); 
+        sc.innerText = state.shotClock; 
+        if(state.shotClock <= 5) sc.style.color = '#ff2a2a'; else sc.style.color = '#ffc107'; 
+    }
+
+    function updatePossessionUI() { 
+        const left = document.getElementById('possArrowLeft'); 
+        const right = document.getElementById('possArrowRight'); 
+        left.style.opacity = (state.possession === 'home') ? '1' : '0.2';
+        right.style.opacity = (state.possession === 'guest') ? '1' : '0.2';
+        
+        // Highlight active panel
+        if(state.possession === 'home') {
+            document.getElementById('homePanel').classList.add('active-possession');
+            document.getElementById('guestPanel').classList.remove('active-possession');
+        } else {
+            document.getElementById('homePanel').classList.remove('active-possession');
+            document.getElementById('guestPanel').classList.add('active-possession');
+        }
+    }
+
+    function checkBonus(team) { 
+        const el = document.getElementById(team + 'Bonus'); 
+        if (state.fouls[team] >= 5) el.classList.add('bonus-active'); else el.classList.remove('bonus-active'); 
+    }
+
+    function updateScore(team, pts) { state.scores[team] += pts; refreshUI(); saveGame(); }
+    function updateFouls(team, amt) { state.fouls[team] += amt; refreshUI(); saveGame(); }
+    function updateTimeouts(team) { if(state.timeouts[team]>0) state.timeouts[team]--; refreshUI(); saveGame(); }
+    function updateName(team, name) { state.names[team] = name; saveGame(); }
+    function cycleColor(team) { state.colors[team] = (state.colors[team] + 1) % COLORS.length; refreshUI(); saveGame(); }
+    function nextPeriod() { 
+        if(state.period === 4) state.period = 'OT'; else if(state.period === 'OT') state.period = 'OT2'; else state.period++; 
+        resetGameClock(); 
+    }
+    function togglePossession() { state.possession = (state.possession === 'home') ? 'guest' : 'home'; refreshUI(); saveGame(); }
+
+    document.addEventListener('keydown', (e) => { 
+        if (e.target.isContentEditable) return; 
+        switch(e.key.toLowerCase()) { 
+            case ' ': e.preventDefault(); toggleClock(); break; 
+            case 's': resetShotClock(24); break; 
+            case 'f': resetShotClock(14); break; 
+            case '1': updateScore('home', 1); break; 
+            case '2': updateScore('home', 2); break; 
+            case '3': updateScore('home', 3); break; 
+            case '4': updateScore('guest', 1); break; 
+            case '5': updateScore('guest', 2); break; 
+            case '6': updateScore('guest', 3); break; 
+        } 
+    });
+
+    loadGame();
+</script>
+</body>
+</html>
